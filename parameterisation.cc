@@ -75,7 +75,7 @@ void Init() {
   // define the boundaries for
   int nParams= 5;
   nbins      = 50;
-  nbinspull  = 100; // nbinspull 80 default
+  nbinspull  = 200; // nbinspull 80 default
   maxntracks = 500;
   d0min      = -2.         ; d0max     = 2.         ;
   z0min      = -100.       ; z0max     = 100.       ;
@@ -84,8 +84,8 @@ void Init() {
   invpt_min  = -0.5e-3     ; invpt_max = 0.5e-3     ;
   pTmin      = 1000           ; ptmax     = 100000  ;
   abscurvmax = .5e-3;
-  Dd0 = 0.4; Drelpt = .00005; Dcurv = .05; Dphi = .015; Dz0 = 2.8; Deta = .020;
-
+//  Dd0 = 0.4; Drelpt = .00005; Dcurv = .05; Dphi = .015; Dz0 = 2.8; Deta = .020;
+ Dd0 = 0.8;    Drelpt = .00010; Dcurv = .15; Dphi = .05; Dz0 = 4.0; Deta = .040;
 
   trackParam_range[0] = Dd0;
   trackParam_range[1] = Dz0;
@@ -102,8 +102,8 @@ void Init() {
     invptval = invptval +stepsize;
 
   }
- // double etabinsarray[] = {0.0,0.5,1.0,1.5,2.0,2.5};
-  double etabinsarray[] = {0.0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.25,2.5};
+  double etabinsarray[] = {0.0,0.5,1.0,1.5,2.0,2.5};
+//  double etabinsarray[] = {0.0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.25,2.5};
   double d0binsarray[]  = {-2.0 ,-1.0 ,0 ,1.0 ,2.0 };
   double z0binsarray[]  = {-110.0 ,-50.0  ,0.0 ,50.0  ,110.0 };
   double ptbinsarray[] = {0,10,20,30,40,50};
@@ -127,10 +127,10 @@ void Init() {
 	          TString hist_res_name(hist_res_name_string);
 	          TString hist_res_title(";#Delta" + trackParam + "(mm);N Tracks");
 	       	  if(iibl == 0){
-		          nbins = 200;
+		          nbins = 500;
 		          hist_res[itp][iibl][ieta][iipt] = new TH1F( hist_res_name,hist_res_title,nbins, -range,range);
 		        }else{
-		          nbins = 200;
+		          nbins = 500;
 		          hist_res[itp][iibl][ieta][iipt] = new TH1F( hist_res_name,hist_res_title,nbins, -range,range);
 		        }
 	       }
@@ -141,6 +141,42 @@ void Init() {
 
   ientry2=0;
 }
+
+void Init2() {
+  // define the boundaries for
+
+  for(int itp = 0; itp < nParams;itp++){
+    string trackParam = trackParam_list[itp];
+    TString TtrackParam(trackParam);
+    TString TtrackParam_title(";" + trackParam + "(reco-truth)/#sigma;N Tracks");
+
+    double range      = trackParam_range[itp];
+    for (int iibl = 0; iibl < 2;iibl++){
+      string iblname = iblnames[iibl];
+      for( int ieta = 0; ieta < etabins.size();ieta++){
+	       for( int iipt = 0; iipt < invptbinsvec.size();iipt++){
+	          string hist_res_name_string = "hist_rebinned_res" + trackParam + "_" + iblname + "_eta" + to_string(ieta) + "_ipt" + to_string(iipt);
+	          TString hist_res_name(hist_res_name_string);
+	          TString hist_res_title(";#Delta" + trackParam + "(mm);N Tracks");
+	       	  if(iibl == 0){
+		          nbins = 50;
+              hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
+              delete hist_res[itp][iibl][ieta][iipt];
+		          hist_res[itp][iibl][ieta][iipt] = new TH1F( hist_res_name,hist_res_title,nbins, -4.5*hist_std[itp][iibl][ieta][iipt],4.5*hist_std[itp][iibl][ieta][iipt]);
+		        }else{
+		          nbins = 50;
+              hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
+              delete hist_res[itp][iibl][ieta][iipt];
+		          hist_res[itp][iibl][ieta][iipt] = new TH1F( hist_res_name,hist_res_title,nbins, -4.5*hist_std[itp][iibl][ieta][iipt],4.5*hist_std[itp][iibl][ieta][iipt]);
+		        }
+	       }
+      }
+    }
+  }
+
+  ientry2=0;
+}
+
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -284,7 +320,157 @@ void Process(Long64_t ientry) {
     }// matching
   } // end loop over truth tracks
 
+
+
+
+
 } // processing 
+
+
+void Process2(Long64_t ientry) {
+  t_ftkdata->GetEntry(ientry);
+
+  // collect information from the run-evt from the truth
+  Int_t evtnumber_ftk = tracks->eventNumber();
+  Int_t runnumber_ftk = tracks->runNumber();
+
+  // first try to start from last number
+  for (; ientry2 < t_truth->GetEntries(); ientry2++) {
+    t_evtinfo->GetEntry(ientry2);
+    if (EventNumber==evtnumber_ftk && RunNumber==runnumber_ftk) break;
+  }
+
+  // only enter this loop if we didn't find it above
+  if (ientry2 == t_truth->GetEntries()) {
+    for (ientry2 = 0; ientry2 < t_truth->GetEntries(); ientry2++) {
+      t_evtinfo->GetEntry(ientry2);
+      if (EventNumber==evtnumber_ftk && RunNumber==runnumber_ftk) break;
+    }
+  }
+
+  if (ientry2 == t_truth->GetEntries()) {
+    cerr << Form("Mismatch between entries: (%d,%d)",runnumber_ftk,evtnumber_ftk) << endl;
+    ientry2=0;
+    return;
+  }
+
+  t_truth->GetEntry(ientry2);
+  if (ientry%1000==0) { Info("Process","Event %lld, (Run,Evt) = (%d,%d)",ientry, runnumber_ftk, evtnumber_ftk);}
+
+  Int_t ntracks = tracks->getNTracks();
+  if (Use1stStage == 1)
+  ntracks = tracks->getNTracksI();
+
+  FTKBarcodeMM ftkmatchinfo;
+  const FTKTrack *curtrack;
+  if (Use1stStage != -1) {
+
+    for (Int_t itrk=0;itrk!=ntracks;++itrk) { // loop over the FTK tracks
+      curtrack = (Use1stStage ? tracks->getTrackI(itrk) : tracks->getTrack(itrk));
+      for ( Int_t ii=0; ii < 12; ++ii){
+      	FTKHit hit = curtrack->getFTKHit(ii);
+      }
+      if (curtrack->getBitmask()&(1<<0) || !(curtrack->getBitmask()&(1<<0)) ) {
+	       FTKHit hit = curtrack->getFTKHit(0);
+	       bool isIBL = hit.getPlane() == 0;
+         if (curtrack->getEventIndex()==0) {
+	           // Information on FTK tracks relative to the hard-scattering events
+	           // are collected in a vector and later used to build matching maps
+	         if (curtrack->getBarcodeFrac()>.5) {
+	           ftkmatchinfo.insert(pair<MatchInfo, const FTKTrack*>(MatchInfo(curtrack->getBarcode(),curtrack->getEventIndex()),curtrack));
+	         }
+	       }
+	
+      	// apply some basic quality selection
+      	double d0 = curtrack->getIP();
+        double z0 = curtrack->getZ0();
+        double phi = curtrack->getPhi();
+        double curv = curtrack->getHalfInvPt();
+        double eta = curtrack->getEta();
+	      if (d0<d0min || d0>d0max) continue;
+	      if (z0<z0min || z0>z0max) continue;
+      	if (phi<phimin || phi > phimax) continue;
+      	if (curv<-abscurvmax || curv>abscurvmax) continue;
+      	if (eta<etamin || eta>etamax) continue;
+	
+      } // end loop over the FTK tracks
+    } // end if not using roads  
+  }
+
+  Int_t ntruth = truthTracks->size();
+  Int_t ntruth_good(0);
+
+  vector<FTKTruthTrack>::const_iterator itr = truthTracks->begin();
+  vector<FTKTruthTrack>::const_iterator itrE = truthTracks->end();
+  for (;itr!=itrE;++itr) { // loop over the truth tracks
+    const FTKTruthTrack &curtruth = (*itr);
+
+    int barcode = curtruth.getBarcode();
+    double px = curtruth.getPX();
+    double py = curtruth.getPY();
+    double pt = TMath::Sqrt(px*px+py*py);
+    double invpt = 1./(2.0*pt);
+    double d0 = curtruth.getD0();
+    double z0 = curtruth.getZ();
+    double curv = curtruth.getQ()*invpt;
+    double phi = curtruth.getPhi();
+    double eta = curtruth.getEta();
+    double qOverp = curv;
+    int pdgcode = curtruth.getPDGCode();
+
+    if (barcode>100000 || barcode==0) continue;
+    if ( pt < ptmincut ) continue;
+    if (d0<d0min || d0>d0max) continue;
+    if (z0<z0min || z0>z0max) continue;
+    if (curv<-abscurvmax || curv>abscurvmax) continue;
+    if (phi<phimin || phi>phimax) continue;
+    if (eta<etamin || eta>etamax) continue;
+    if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
+
+    // match the barcode and event index values
+    MatchInfo reftruth(barcode,curtruth.getEventIndex());
+    pair<FTKBarcodeMM::const_iterator,FTKBarcodeMM::const_iterator> mrange = ftkmatchinfo.equal_range(reftruth);
+    if (mrange.first != mrange.second) {
+      const FTKTrack *bestftk(0x0);
+      for(FTKBarcodeMM::const_iterator ftkI = mrange.first;ftkI!=mrange.second;++ftkI) {
+        if (!bestftk){
+          bestftk = (*ftkI).second;
+        } else if (bestftk->getBarcodeFrac()<(*ftkI).second->getBarcodeFrac()) {
+          bestftk = (*ftkI).second;
+        }
+      }
+      
+      if (bestftk) {
+	       FTKHit hit = bestftk->getFTKHit(0);
+	       bool isIBL = hit.getPlane() == 0;
+	       for(int ieta = 1; ieta < etabins.size(); ieta++){
+	         eta_min = etabins.at(ieta-1);
+	         eta_max = etabins.at(ieta);
+	         for(int iipt = 1; iipt < invptbinsvec.size();iipt++){
+	           invpt_min = invptbinsvec.at(iipt-1);
+	           invpt_max = invptbinsvec.at(iipt);
+	           if ( TMath::Abs(eta) < eta_min || TMath::Abs(eta) > eta_max) continue;
+  		       if ( qOverp < invpt_min        || qOverp > invpt_max       ) continue;
+
+             double invpt_fill = 1./(2*bestftk->getPt());              
+             hist_res[0][isIBL][ieta-1][iipt-1]->Fill(d0-bestftk->getIP());
+             hist_res[1][isIBL][ieta-1][iipt-1]->Fill(z0-bestftk->getZ0());
+             hist_res[2][isIBL][ieta-1][iipt-1]->Fill(eta-bestftk->getEta());
+             hist_res[3][isIBL][ieta-1][iipt-1]->Fill(phi-bestftk->getPhi());
+			       hist_res[4][isIBL][ieta-1][iipt-1]->Fill(qOverp -invpt_fill);
+        	 } // invpt bins
+	       } // eta bins 
+      } //best ftk loop
+    }// matching
+  } // end loop over truth tracks
+
+
+
+
+
+} // processing 
+
+
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -315,11 +501,21 @@ void width_calculation(){
            /* 2. TAIL GAUSSIAN ESTIMATION*/
            /* 3. DOUBLE GAUSSIAN */ 
 
-           hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
-           double histrange = 3.0*hist_std[itp][iibl][ieta][iipt];
+           //hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
 
-           hist_res[itp][iibl][ieta][iipt]->SetAxisRange(-histrange, histrange, "X");
-           hist_res[itp][iibl][ieta][iipt]->Rebin(50);
+           //hist_res[itp][iibl][ieta][iipt]->SetRangeUser(-histrange,histrange)
+//           double histrange = 4.0*hist_std[itp][iibl][ieta][iipt];
+//           hist_res[itp][iibl][ieta][iipt]->SetAxisRange(-histrange,histrange,"X");
+           //hist_res[itp][iibl][ieta][iipt]->SetBins(50,-histrange,histrange);
+           //std::cout << hist_res[itp][iibl][ieta][iipt]->GetSize() <<std::endl;
+//          string rebinned_name = "hist_res_rebinned_" + trackParam + "_" + iblname + "_eta" + to_string(ieta) + "_ipt" + to_string(iipt);
+  //        hist_res[itp][iibl][ieta][iipt] = (TH1F*)hist_res_temp[itp][iibl][ieta][iipt]->Rebin(4);
+//          hist_res[itp][iibl][ieta][iipt]->SetBins(50,-histrange,histrange);
+ //         hist_res[itp][iibl][ieta][iipt] 
+//           hist_res[itp][iibl][ieta][iipt]->SetAxisRange(-histrange, histrange, "X");
+  //         hist_res[itp][iibl][ieta][iipt]->Rebin(4);
+
+
 //           double coreRange = hist_std[itp][iibl][ieta][iipt];
 //           double tailRange = 0.0;
 //           if(coreRange*3.0 > trackRange){ 
@@ -331,12 +527,14 @@ void width_calculation(){
 
 //          coreRange = trackRange;
  //         tailRange = trackRange;
+          double  histrange = 4.5*hist_std[itp][iibl][ieta][iipt];
 	         TF1 *g1= new TF1 ("m1","gaus",-histrange,histrange);
 	         TF1 *g2= new TF1 ("m2","gaus",-histrange,histrange);
 	         TF1 *f1= new TF1("double_gaus","gaus(0)+gaus(3)",-histrange,histrange);
 
            /*  FIT THE FIRST GAUSSIAN */
            /*  NO INITIAL CONDITIONS  */
+           //g1->FixParameter(1,0.0);
            hist_res[itp][iibl][ieta][iipt]->Fit(g1,"QR0");
 
            double width       = g1->GetParameter(2);
@@ -487,7 +685,7 @@ void sqrt_fit(){
           TF1 *func = new TF1("sqrtfit",fitf,-invpt_max,invpt_max,2);
           func->SetParameters(width_arr[0],linear_par1*linear_par1);
           double minimumfit = width_arr[13];//std::Min(width_arr[13],width_arr[14]);
-          func->SetParLimits(0,0.,3.5*minimumfit*minimumfit);
+          func->SetParLimits(0,0.,1.44*minimumfit*minimumfit);
           func->SetParNames ("a","b");
           graph_sqrt->Fit("sqrtfit","q","",-invpt_max,invpt_max);
           TF1 *sqrt_fit = graph_sqrt->GetFunction("sqrtfit");
@@ -713,12 +911,14 @@ void Terminate(std::string& outputname) {
 
 	      Double_t par[6]; /* parameter array */
 //        hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
-      double histrange = 3.0*hist_std[itp][iibl][ieta][iipt];
+      //std::cout << hist_res[itp][iibl][ieta][iipt]->GetSize() <<std::endl;
+      double histrange = 4.5*hist_std[itp][iibl][ieta][iipt];
        TF1 *g1= new TF1 ("singlegaus","gaus",-histrange,histrange);
        TF1 *g2= new TF1 ("m2","gaus",-histrange,histrange);
        TF1 *f1= new TF1("double_gaus","gaus(0)+gaus(3)",-histrange,histrange);
+       //g1->FixParameter(1,0.0);
        hist_res[itp][iibl][ieta][iipt]->Fit(g1,"R");
-       hist_res[itp][iibl][ieta][iipt]->Fit(g2,"R0");
+       hist_res[itp][iibl][ieta][iipt]->Fit(g2,"R+");
 //        g1->GetParameters(&par[0]);
 	      //	  hist_res[itp][iibl][ieta][iipt]->Draw();
 	      //          g1->SetParLimits(5,0.0,5*par[3]);
@@ -872,7 +1072,7 @@ void Terminate(std::string& outputname) {
 	    TF1 *func = new TF1("sqrtfit",fitf,-invpt_max,invpt_max,2);
       func->SetParameters(width_arr[0],linear_par1*linear_par1);
       double minimumfit = width_arr[13];//std::Min(width_arr[13],width_arr[14]);
-      func->SetParLimits(0,0,3.5*minimumfit*minimumfit);
+      func->SetParLimits(0,0,1.44*minimumfit*minimumfit);
       //	func->SetParameters(width_arr[0],linear_par1*linear_par1);
 	    func->SetParNames ("a","b");
 
@@ -1103,6 +1303,10 @@ int main(int argc, char **argv) {
     }
     for (int ientry = 0; ientry < nloop; ++ientry) {
       Process(ientry);
+    }
+    Init2();
+    for (int ientry = 0; ientry < nloop; ++ientry) {
+      Process2(ientry);
     }
     width_calculation();
     sqrt_fit();

@@ -100,6 +100,8 @@ TH1F *hist_resd0_IBL_test_invpt[30][30];
 TH1F *hist_resd0_noIBL_test_invpt[30][30];
 
 TH1F *hist_res[10][2][20][200];
+TH1F *hist_res_temp[10][2][20][200];
+
 double A_width[10][2][20][200];
 double A_width_errors[10][2][20][200];
 double A_sq_par0[10][2][20];
