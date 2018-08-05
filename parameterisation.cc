@@ -85,7 +85,7 @@ void Init() {
   pTmin      = 1000           ; ptmax     = 100000  ;
   abscurvmax = .5e-3;
   Dd0 = 0.4; Drelpt = .00005; Dcurv = .05; Dphi = .015; Dz0 = 2.8; Deta = .020;
-  // 0.27
+
 
   trackParam_range[0] = Dd0;
   trackParam_range[1] = Dz0;
@@ -127,10 +127,10 @@ void Init() {
 	          TString hist_res_name(hist_res_name_string);
 	          TString hist_res_title(";#Delta" + trackParam + "(mm);N Tracks");
 	       	  if(iibl == 0){
-		          nbins = 15;
+		          nbins = 200;
 		          hist_res[itp][iibl][ieta][iipt] = new TH1F( hist_res_name,hist_res_title,nbins, -range,range);
 		        }else{
-		          nbins = 50;
+		          nbins = 200;
 		          hist_res[itp][iibl][ieta][iipt] = new TH1F( hist_res_name,hist_res_title,nbins, -range,range);
 		        }
 	       }
@@ -314,21 +314,26 @@ void width_calculation(){
            /* 1. SINGLE GAUSSIAN /CORE GAUSSIAN ESTIMATION*/
            /* 2. TAIL GAUSSIAN ESTIMATION*/
            /* 3. DOUBLE GAUSSIAN */ 
+
            hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
-           double coreRange = hist_std[itp][iibl][ieta][iipt];
-           double tailRange = 0.0;
-           if(coreRange*3.0 > trackRange){ 
-               tailRange = trackRange;   
-           }
-           else{
-               tailRange = 3.0*coreRange;
-           }
+           double histrange = 3.0*hist_std[itp][iibl][ieta][iipt];
+
+           hist_res[itp][iibl][ieta][iipt]->SetAxisRange(-histrange, histrange, "X");
+           hist_res[itp][iibl][ieta][iipt]->Rebin(50);
+//           double coreRange = hist_std[itp][iibl][ieta][iipt];
+//           double tailRange = 0.0;
+//           if(coreRange*3.0 > trackRange){ 
+//               tailRange = trackRange;   
+//           }
+//           else{
+//               tailRange = 3.0*coreRange;
+//           }
 
 //          coreRange = trackRange;
  //         tailRange = trackRange;
-	         TF1 *g1= new TF1 ("m1","gaus",-coreRange,coreRange);
-	         TF1 *g2= new TF1 ("m2","gaus",-tailRange,tailRange);
-	         TF1 *f1= new TF1("double_gaus","gaus(0)+gaus(3)",-tailRange,tailRange);
+	         TF1 *g1= new TF1 ("m1","gaus",-histrange,histrange);
+	         TF1 *g2= new TF1 ("m2","gaus",-histrange,histrange);
+	         TF1 *f1= new TF1("double_gaus","gaus(0)+gaus(3)",-histrange,histrange);
 
            /*  FIT THE FIRST GAUSSIAN */
            /*  NO INITIAL CONDITIONS  */
@@ -707,23 +712,13 @@ void Terminate(std::string& outputname) {
 	      TCanvas *c = new TCanvas;
 
 	      Double_t par[6]; /* parameter array */
-        hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
-        double coreRange = hist_std[itp][iibl][ieta][iipt];
-        double tailRange = 0.0;
-        if(coreRange*3.0 > trackRange){ 
-          tailRange = trackRange;   
-        }
-        else{
-          tailRange = 3.0*coreRange;
-        }
-        
-       coreRange = trackRange;
-       tailRange = trackRange;
-       TF1 *g1= new TF1 ("singlegaus","gaus",-coreRange,coreRange);
-       TF1 *g2= new TF1 ("m2","gaus",-tailRange,tailRange);
-       TF1 *f1= new TF1("double_gaus","gaus(0)+gaus(3)",-tailRange,tailRange);
+//        hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
+      double histrange = 3.0*hist_std[itp][iibl][ieta][iipt];
+       TF1 *g1= new TF1 ("singlegaus","gaus",-histrange,histrange);
+       TF1 *g2= new TF1 ("m2","gaus",-histrange,histrange);
+       TF1 *f1= new TF1("double_gaus","gaus(0)+gaus(3)",-histrange,histrange);
        hist_res[itp][iibl][ieta][iipt]->Fit(g1,"R");
-       hist_res[itp][iibl][ieta][iipt]->Fit(g2,"R+");
+       hist_res[itp][iibl][ieta][iipt]->Fit(g2,"R0");
 //        g1->GetParameters(&par[0]);
 	      //	  hist_res[itp][iibl][ieta][iipt]->Draw();
 	      //          g1->SetParLimits(5,0.0,5*par[3]);
