@@ -29,8 +29,8 @@
 // 1. PRINTPSFILE - DNE
 // 2. FIF - SQUARE ROOT PARAMETERISATION
 // 3. MAKELOG BINNING - DNE
-// 4. INITIALISE 
-// 5. PROCESS 
+// 4. INITIALISE  (1 and 2)
+// 5. PROCESS     (1 and 2)
 // 6. WIDTH CALCULATION
 // 7. SQUARE ROOT FIT
 // 8. PULL
@@ -282,6 +282,7 @@ void Process(Long64_t ientry) {
     if (phi<phimin || phi>phimax) continue;
     if (eta<etamin || eta>etamax) continue;
     if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
+    //EDIT TRACK CRITERIA
 
     // match the barcode and event index values
     MatchInfo reftruth(barcode,curtruth.getEventIndex());
@@ -426,6 +427,7 @@ void Process2(Long64_t ientry) {
     if (phi<phimin || phi>phimax) continue;
     if (eta<etamin || eta>etamax) continue;
     if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
+    //EDIT TRACK CRITERIA
 
     // match the barcode and event index values
     MatchInfo reftruth(barcode,curtruth.getEventIndex());
@@ -539,7 +541,7 @@ void width_calculation(){
 
            double width       = g1->GetParameter(2);
            double width_error = g1->GetParError(2);
-
+           // EDIT GAUSSIAN
            g2->SetParLimits(3,5.0,0.2*par[3]); // height of second gaussian.
            // g2->SetParLimits(4,none,none);
            g2->SetParLimits(5,0.0,3*par[5]); //width of second gaussian
@@ -674,7 +676,7 @@ void sqrt_fit(){
 
           Int_t n = ninvptbins;        
           TGraphErrors *graph_linear = new TGraphErrors(n,ipt_arr,width_arr,0,width_errors_arr);
-
+          // EDIT FIT 
           graph_linear->Fit("pol1","q"," ",0.0,invpt_max);
           TF1 *linear_fit = graph_linear->GetFunction("pol1");
           double linear_par0 = linear_fit->GetParameter(0); 
@@ -815,6 +817,7 @@ void Pull (Long64_t ientry) {
     if (curv<-abscurvmax || curv>abscurvmax) continue;
     if (phi<phimin       || phi>phimax)      continue;
     if (eta<etamin       || eta>etamax)      continue;
+    //EDIT TRACK CRITERIA
     if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
 
     // match the barcode and event index values
@@ -912,6 +915,8 @@ void Terminate(std::string& outputname) {
 	      Double_t par[6]; /* parameter array */
 //        hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
       //std::cout << hist_res[itp][iibl][ieta][iipt]->GetSize() <<std::endl;
+
+      // // EDIT GAUSSIAN
       double histrange = 4.5*hist_std[itp][iibl][ieta][iipt];
        TF1 *g1= new TF1 ("singlegaus","gaus",-histrange,histrange);
        TF1 *g2= new TF1 ("m2","gaus",-histrange,histrange);
@@ -919,6 +924,8 @@ void Terminate(std::string& outputname) {
        //g1->FixParameter(1,0.0);
        hist_res[itp][iibl][ieta][iipt]->Fit(g1,"R");
        hist_res[itp][iibl][ieta][iipt]->Fit(g2,"R+");
+
+
 //        g1->GetParameters(&par[0]);
 	      //	  hist_res[itp][iibl][ieta][iipt]->Draw();
 	      //          g1->SetParLimits(5,0.0,5*par[3]);
