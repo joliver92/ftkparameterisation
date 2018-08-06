@@ -159,12 +159,12 @@ void Init2() {
 	          TString hist_res_name(hist_res_name_string);
 	          TString hist_res_title(";#Delta" + trackParam + "(mm);N Tracks");
 	       	  if(iibl == 0){
-		          nbins = 50;
+		          nbins = 25;
               hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
               delete hist_res[itp][iibl][ieta][iipt];
 		          hist_res[itp][iibl][ieta][iipt] = new TH1F( hist_res_name,hist_res_title,nbins, -4.5*hist_std[itp][iibl][ieta][iipt],4.5*hist_std[itp][iibl][ieta][iipt]);
 		        }else{
-		          nbins = 50;
+		          nbins = 25;
               hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
               delete hist_res[itp][iibl][ieta][iipt];
 		          hist_res[itp][iibl][ieta][iipt] = new TH1F( hist_res_name,hist_res_title,nbins, -4.5*hist_std[itp][iibl][ieta][iipt],4.5*hist_std[itp][iibl][ieta][iipt]);
