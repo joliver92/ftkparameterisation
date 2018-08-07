@@ -39,6 +39,11 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
+double round(long double number, int precision) {
+  int decimals = std::pow(10, precision);
+  return (std::round(number * decimals)) / decimals;
+}
+
 void printpsfile(std::string, TFile* f);
 
 
@@ -50,6 +55,12 @@ Double_t fitf(Double_t *x,Double_t *par) {
   Double_t fitval = TMath::Sqrt(par[0] + par[1]*x[0]*x[0]);
 
   return fitval;
+}
+
+double gaussFunc(double *x, double *par) {
+   double s;
+   s = par[0]*exp(-(x[0]-par[1])*(x[0]-par[1])/par[3]/par[3]/2   );
+   return s;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -137,6 +148,7 @@ void Init() {
       }
     }
     pull_res[itp] = new TH1F( TtrackParam,TtrackParam_title,nbinspull,-5,5);
+
   }
 
   ientry2=0;
@@ -211,7 +223,7 @@ void Process(Long64_t ientry) {
   }
 
   t_truth->GetEntry(ientry2);
-  if (ientry%1000==0) { Info("Process","Event %lld, (Run,Evt) = (%d,%d)",ientry, runnumber_ftk, evtnumber_ftk);}
+  if (ientry%10000==0) { Info("Process","Event %lld, (Run,Evt) = (%d,%d)",ientry, runnumber_ftk, evtnumber_ftk);}
 
   Int_t ntracks = tracks->getNTracks();
   if (Use1stStage == 1)
@@ -356,7 +368,7 @@ void Process2(Long64_t ientry) {
   }
 
   t_truth->GetEntry(ientry2);
-  if (ientry%1000==0) { Info("Process","Event %lld, (Run,Evt) = (%d,%d)",ientry, runnumber_ftk, evtnumber_ftk);}
+  if (ientry%10000==0) { Info("Process","Event %lld, (Run,Evt) = (%d,%d)",ientry, runnumber_ftk, evtnumber_ftk);}
 
   Int_t ntracks = tracks->getNTracks();
   if (Use1stStage == 1)
@@ -530,7 +542,8 @@ void width_calculation(){
 //          coreRange = trackRange;
  //         tailRange = trackRange;
           double  histrange = 4.5*hist_std[itp][iibl][ieta][iipt];
-	         TF1 *g1= new TF1 ("m1","gaus",-histrange,histrange);
+          double  corerange = hist_std[itp][iibl][ieta][iipt];
+	         TF1 *g1= new TF1 ("m1","gaus",-corerange,corerange);
 	         TF1 *g2= new TF1 ("m2","gaus",-histrange,histrange);
 	         TF1 *f1= new TF1("double_gaus","gaus(0)+gaus(3)",-histrange,histrange);
 
@@ -539,12 +552,12 @@ void width_calculation(){
            //g1->FixParameter(1,0.0);
            hist_res[itp][iibl][ieta][iipt]->Fit(g1,"QR0");
 
-           double width       = g1->GetParameter(2);
-           double width_error = g1->GetParError(2);
+           //double width       = g1->GetParameter(2);
+           //double width_error = g1->GetParError(2);
            // EDIT GAUSSIAN
-           g2->SetParLimits(3,5.0,0.2*par[3]); // height of second gaussian.
+           g2->SetParLimits(3,0.2*par[0],par[0]); // height of second gaussian.
            // g2->SetParLimits(4,none,none);
-           g2->SetParLimits(5,0.0,3*par[5]); //width of second gaussian
+           g2->SetParLimits(5,par[2],10*par[2]); //width of second gaussian
            //g2->FixParameter(3,none);
            g2->FixParameter(4,0); // // mean of second gaussian.
            // g2->FixParameter(5,none);
@@ -559,9 +572,9 @@ void width_calculation(){
 	         g2->GetParameters(&par[3]);
 	  
            /* Overwrite the parameters from the initial gaussian estimations */
-	         par[3] = 0.2*par[3]; // height
-	         par[4] = par[4];  // mean 
-	         par[5] = par[5]; //sigma (width)
+	         par[3] = 0.2*par[0]; // height
+	         par[4] = par[1];  // mean 
+	         par[5] = 3.0*par[2]; //sigma (width)
 
            /* SET THE PARAMETERS OF THE DOUBLE GAUSSIAN GAUSS(0) + GAUSS(3) */
 	         f1->SetParameters(par);
@@ -570,9 +583,9 @@ void width_calculation(){
            //f1->SetParLimits(0,none,none);
            //f1->SetParLimits(1,none,none);
            //f1->SetParLimits(2,none,none);
-           f1->SetParLimits(3,5.0,0.2*par[3]);
+           f1->SetParLimits(3,0.2*par[0],par[0]);
            //f1->SetParLimits(4,none,none);
-	         f1->SetParLimits(5,0.0,3*par[3]);
+	         f1->SetParLimits(5,par[2],10*par[2]);
 
            /* ===========================================================================================*/
            /* FIX PARAMETERS OF F1 */
@@ -626,7 +639,7 @@ void width_calculation(){
           double weight1 = n1/(n1+n2);
           double weight2 = n2/(n1+n2);
           
-         //// double width = sqrt(weight1*var1 +weight2*var2); // APPROXIMATION
+          double width = sqrt(weight1*var1 +weight2*var2); // APPROXIMATION
           /*CALCULATE THE ERROR OF THE VARIANCE */
           double a_n1     = 1/(n1+n2);
 	        double a_n2     = -pow(n1+n2,-2);
@@ -636,7 +649,7 @@ void width_calculation(){
 	        double b_n2 = 1/(n1+n2);
 	        double sigma_w2 =  sqrt( b_n1*b_n1*error_n1*error_n1 + b_n2*b_n2*error_n2*error_n2);
           /* error^2 = S(1)^2*E(W1)^2 + S(2)^2*E(W2)^2 + W1^2*E(W1)^2 + W2^2*E(W2)^2 */
-         ////// double width_error = sqrt(var1*sigma_w1*sigma_w1+ var2*sigma_w2*sigma_w2 +weight1*weight1*sigma_w1*sigma_w1 + weight2*weight2*sigma_w2*sigma_w2);
+          double width_error = sqrt(var1*sigma_w1*sigma_w1+ var2*sigma_w2*sigma_w2 +weight1*weight1*sigma_w1*sigma_w1 + weight2*weight2*sigma_w2*sigma_w2);
 
           widths.push_back(width);
           width_errors.push_back(width_error);
@@ -687,7 +700,7 @@ void sqrt_fit(){
           TF1 *func = new TF1("sqrtfit",fitf,-invpt_max,invpt_max,2);
           func->SetParameters(width_arr[0],linear_par1*linear_par1);
           double minimumfit = width_arr[13];//std::Min(width_arr[13],width_arr[14]);
-          func->SetParLimits(0,0.,1.44*minimumfit*minimumfit);
+          func->SetParLimits(0,0.,1.22*minimumfit*minimumfit);
           func->SetParNames ("a","b");
           graph_sqrt->Fit("sqrtfit","q","",-invpt_max,invpt_max);
           TF1 *sqrt_fit = graph_sqrt->GetFunction("sqrtfit");
@@ -737,7 +750,7 @@ void Pull (Long64_t ientry) {
 
   t_truth->GetEntry(ientry2);
 
-  if (ientry%1000==0) {
+  if (ientry%10000==0) {
     Info("Process","Event %lld, (Run,Evt) = (%d,%d)",ientry, runnumber_ftk, evtnumber_ftk);
   }
 
@@ -910,20 +923,87 @@ void Terminate(std::string& outputname) {
 	    width_errors.clear();
 
     	for(int iipt=0;iipt < invptbinsvec.size()-1;iipt++){
-	      TCanvas *c = new TCanvas;
+        TCanvas *c = new TCanvas("c", "c", 800, 650);
 
 	      Double_t par[6]; /* parameter array */
 //        hist_std[itp][iibl][ieta][iipt] = hist_res[itp][iibl][ieta][iipt]->GetStdDev();
       //std::cout << hist_res[itp][iibl][ieta][iipt]->GetSize() <<std::endl;
 
       // // EDIT GAUSSIAN
-      double histrange = 4.5*hist_std[itp][iibl][ieta][iipt];
-       TF1 *g1= new TF1 ("singlegaus","gaus",-histrange,histrange);
-       TF1 *g2= new TF1 ("m2","gaus",-histrange,histrange);
-       TF1 *f1= new TF1("double_gaus","gaus(0)+gaus(3)",-histrange,histrange);
+      double  histrange = 4.5*hist_std[itp][iibl][ieta][iipt];
+      double  corerange = hist_std[itp][iibl][ieta][iipt];
+	    TF1 *g1= new TF1 ("m1","gaus",-corerange,corerange);
+	    TF1 *g2= new TF1 ("m2","gaus",-histrange,histrange);
+	    TF1 *f1= new TF1("double_gaus","gaus(0)+gaus(3)",-histrange,histrange);
+
+      TF1 *core = new TF1 ( "core","gaus",-histrange,histrange);
+      TF1 *tails = new TF1 ( "tails","gaus",-histrange,histrange);
+
+      f1->SetLineColor(kRed+1);
+      core->SetLineColor(kBlue+1);
+      tails->SetLineColor(kGreen+2);
+
+      f1->SetLineStyle(1);
+      core->SetLineStyle(2);
+      tails->SetLineStyle(4);
+
+          hist_res[itp][iibl][ieta][iipt]->Fit(g1,"QR0");
+
+
+           g2->SetParLimits(3,0.2*par[0],par[0]); // height of second gaussian.
+           // g2->SetParLimits(4,none,none);
+           g2->SetParLimits(5,par[2],10*par[2]); //width of second gaussian
+           //g2->FixParameter(3,none);
+           g2->FixParameter(4,0); // // mean of second gaussian.
+           // g2->FixParameter(5,none);
+
+           /*  FIT THE SECOND GAUSSIAN */
+           /*  INITIAL CONDITIONS GENERATED FROM FIRST GAUSSIAN  */
+	         hist_res[itp][iibl][ieta][iipt]->Fit(g2,"QR0");
+
+        	 /* GET PARAMETERS FROM BOTH FITS. */
+           /* MAP THE PARAMETERS TO A 6 ELEMENT PAR ARRAY */
+	         g1->GetParameters(&par[0]);
+	         g2->GetParameters(&par[3]);
+	  
+           /* Overwrite the parameters from the initial gaussian estimations */
+	         par[3] = 0.2*par[0]; // height
+	         par[4] = par[2];  // mean 
+	         par[5] = 3.0*par[2]; //sigma (width)
+
+           /* SET THE PARAMETERS OF THE DOUBLE GAUSSIAN GAUSS(0) + GAUSS(3) */
+	         f1->SetParameters(par);
+
+           /* SET RANGES OF PARAMETERS */
+           f1->SetParLimits(0,0.0,5000.0);
+           //f1->SetParLimits(1,none,none);
+           //f1->SetParLimits(2,none,none);
+           f1->SetParLimits(3,0.2*par[0],par[0]);
+           //f1->SetParLimits(4,none,none);
+	         f1->SetParLimits(5,par[2],5*par[2]);
+
+           /* ===========================================================================================*/
+           /* FIX PARAMETERS OF F1 */
+           //f1->FixParameters(0,none);
+           f1->FixParameter(1,0.0);
+           //f1->FixParameters(2,none);
+           //f1->FixParameters(3,none);
+           f1->FixParameter(4,0.0);
+           //f1->FixParameters(5,none);
+           /* ===========================================================================================*/
+
+           /* FIT THE HISTOGRAM TO A DOUBLE GAUSSIAN */
+        	 hist_res[itp][iibl][ieta][iipt]->Fit(f1,"QR");
+           core->SetParameters(f1->GetParameter(0),f1->GetParameter(1),f1->GetParameter(2));
+           tails->SetParameters(f1->GetParameter(3),f1->GetParameter(4),f1->GetParameter(5));
+
+
+
+
+
        //g1->FixParameter(1,0.0);
-       hist_res[itp][iibl][ieta][iipt]->Fit(g1,"R");
-       hist_res[itp][iibl][ieta][iipt]->Fit(g2,"R+");
+   //    hist_res[itp][iibl][ieta][iipt]->Fit(g1,"QR");
+   //    hist_res[itp][iibl][ieta][iipt]->Fit(g2,"QR+");
 
 
 //        g1->GetParameters(&par[0]);
@@ -995,10 +1075,38 @@ void Terminate(std::string& outputname) {
     	  gStyle->SetOptFit(1111);
 	      //std::cout << "after gaussian fit" << std::endl;
 	      hist_res[itp][iibl][ieta][iipt]->Draw();
+        core->Draw("SAME");
+        tails->Draw("SAME");
 
         // currently draw plot 1 and plot 2
         // 
 
+      TLatex* atlas_title = new TLatex();
+      atlas_title->SetTextAlign(11);
+      atlas_title->SetTextSize(0.04);
+      atlas_title->SetTextFont(42);
+      atlas_title->SetNDC();
+      std::string tempname ="#bf{#it{ATLAS}} Simulation " + iblname;
+      const char *atlas_title_name = tempname.c_str();
+      atlas_title->DrawLatex(.15, 0.83, atlas_title_name);
+
+
+      eta_min = etabins.at(ieta);
+      eta_max = etabins.at(ieta+1);
+      invpt_min = invptbinsvec.at(iipt);
+      invpt_max = invptbinsvec.at(iipt+1);
+
+
+        TLatex* etapt = new TLatex();
+      etapt->SetTextAlign(11);
+      etapt->SetTextSize(0.04);
+      etapt->SetTextFont(42);
+      etapt->SetNDC();
+
+      std::string etapttempname ="#eta in [" + to_string(round(eta_min,2)).substr(0,3) + "," + to_string(round(eta_max,2)).substr(0,5) + "] and 1/2p_{T} in [" + to_string(round(invpt_min*1e3,5)).substr(0,4) + "," + to_string(round(invpt_max*1e3,2)).substr(0,4) + "]";
+      
+      const char *etapt_name = etapttempname.c_str();
+      etapt->DrawLatex(.15, 0.93, etapt_name);
 
 //        TF1 *fb2 = new TF1("fa3","gaus",-trackRange,trackRange);
 //        fb2->SetParameters(g1->GetParameter(0),g1->GetParameter(1),g1->GetParameter(2));
@@ -1052,7 +1160,7 @@ void Terminate(std::string& outputname) {
 	    graph_linear->SetMarkerColor(2);
 	    //gStyle->SetOptFit(1111);
 	    TLatex* TitleATLAS = new TLatex();
-	    TString atlastitle("ATLAS Simulation, " + iblname); 
+	    //TString atlastitle("ATLAS Simulation, " + iblname); 
 	    //	TitleATLAS->DrawLatex(0,0.75*width_arr[0],atlastitle);
 
 
@@ -1071,7 +1179,7 @@ void Terminate(std::string& outputname) {
 	    TImage *imgsqroot = TImage::Create();
 	    csqroot->cd();
 	    //	graph_sqrt->Draw("ep");
-	    gStyle->SetOptFit(1111);
+	    //gStyle->SetOptFit(1111);
 
     	std::string sqroot_name = "sqroot_" + trackParam + "_" + iblname + "_eta" + std::to_string(ieta);
       TString sqroot_save("updatefolder/" + sqroot_name + ".png");
@@ -1079,7 +1187,7 @@ void Terminate(std::string& outputname) {
 	    TF1 *func = new TF1("sqrtfit",fitf,-invpt_max,invpt_max,2);
       func->SetParameters(width_arr[0],linear_par1*linear_par1);
       double minimumfit = width_arr[13];//std::Min(width_arr[13],width_arr[14]);
-      func->SetParLimits(0,0,1.44*minimumfit*minimumfit);
+       func->SetParLimits(0,0,1.22*minimumfit*minimumfit);
       //	func->SetParameters(width_arr[0],linear_par1*linear_par1);
 	    func->SetParNames ("a","b");
 
@@ -1101,10 +1209,40 @@ void Terminate(std::string& outputname) {
 
 	    TString YaxisSQname("#sigma(" + trackParam + ")"+ trackParam_unit );
 	    TString XaxisSQname("Q/2p_{T} [MeV]^{-1}");
+
 	    graph_sqrt->GetYaxis()->SetTitle(YaxisSQname);
 	    graph_sqrt->GetXaxis()->SetTitle(XaxisSQname);
+      graph_sqrt->SetTitle("");
+      graph_sqrt->Draw("AEP");
+      TLatex* tl = new TLatex();
+      tl->SetTextAlign(11);
+      tl->SetTextSize(0.04);
+      tl->SetTextFont(42);
+      tl->SetNDC();
+      std::string tempname2 ="#bf{#it{ATLAS}} Simulation " + iblname;
+      const char *tl_name = tempname2.c_str();
+      tl->DrawLatex(.15, 0.83, tl_name);
 
-    	graph_sqrt->Draw("AEP");
+
+      eta_min = etabins.at(ieta);
+      eta_max = etabins.at(ieta+1);
+
+
+
+        TLatex* etapt = new TLatex();
+      etapt->SetTextAlign(11);
+      etapt->SetTextSize(0.04);
+      etapt->SetTextFont(42);
+      etapt->SetNDC();
+
+      std::string etapttempname ="#eta in [" + to_string(round(eta_min,2)).substr(0,3) + "," + to_string(round(eta_max,2)).substr(0,3) + "]" ;
+      
+      const char *etapt_name = etapttempname.c_str();
+      etapt->DrawLatex(.15, 0.93, etapt_name);
+
+
+
+
       csqroot->Update();
 	    imgsqroot->FromPad(csqroot);
 	    imgsqroot->WriteImage(sqroot_save);
