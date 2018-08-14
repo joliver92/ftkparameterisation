@@ -36,6 +36,14 @@ double eta_min,eta_max;
 double d0_min, d0_max;
 double pt_min,pt_max;
 double invpt_min,invpt_max;
+double etabin_min;
+double etabin_max;
+double invptbin_min;
+double invptbin_max;
+
+
+
+
 double stepsize;
 int ninvptbins;
 double invptval;
@@ -102,10 +110,30 @@ TH1F *hist_resd0_noIBL_test_invpt[30][30];
 TH1F *hist_res[10][2][20][200];
 TH1F *hist_res_temp[10][2][20][200];
 
+//corewidths.push_back(corewidth);
+//tailwidths.push_back(tailwidth);
+
+//corewidth_errors.push_back(corewidth_error);
+//tailwidth_errors.push_back(tailwidth_error);
+
+double A_corewidth[10][2][20][200];
+double A_tailwidth[10][2][20][200];
+
+double A_corewidth_errors[10][2][20][200];
+double A_tailwidth_errors[10][2][20][200];
+
+
+
 double A_width[10][2][20][200];
 double A_width_errors[10][2][20][200];
 double A_sq_par0[10][2][20];
 double A_sq_par1[10][2][20];
+
+double A_coresq_par0[10][2][20];
+double A_coresq_par1[10][2][20];
+double A_tailsq_par0[10][2][20];
+double A_tailsq_par1[10][2][20];
+
 double hist_std[10][2][20][200];
 //string iblnames[2];
 //string trackParam_list[10];
@@ -266,6 +294,16 @@ std::vector<double> ptbinsvec;
 std::vector<double> invptbinsvec;
 std::vector<double> widthvec;
 std::vector<double> widtherr;
+
+std::vector<double> corewidths;
+std::vector<double> tailwidths;
+std::vector<double> corewidth_errors;
+std::vector<double> tailwidth_errors;
+//tailwidths.push_back(tailwidth);
+
+//corewidth_errors.push_back(corewidth_error);
+//tailwidth_errors.push_back(tailwidth_error);
+
 
 
 std::vector<double> widths;
