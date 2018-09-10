@@ -40,12 +40,15 @@ double etabin_min;
 double etabin_max;
 double invptbin_min;
 double invptbin_max;
-
+double ipt_arr[200];
+int nibl;
 
 
 
 double stepsize;
 int ninvptbins;
+int middlebin1;
+int middlebin2;
 double invptval;
 int nParams=5;
 //int z0bins;
@@ -72,10 +75,13 @@ Double_t etabinsarray[20];
 Double_t d0binsarray[20];
 Double_t z0binsarray[20];
 Double_t ptbinsarray[20];
-
-
+int reprocessing = 0;
+//TString Tpulltype[3];
+//TString Tpulltitle[3];
 
 TH1F *pull_res[5];
+TH1F *pull_res_sg[5];
+TH1F *TP_pull[5][5][3];
 
 // block of generic control histograms for the FTK tracks
 TH1F *histoz0res_ptgt30;
@@ -119,6 +125,8 @@ TH1F *hist_res_temp[10][2][20][200];
 double A_corewidth[10][2][20][200];
 double A_tailwidth[10][2][20][200];
 
+double A_ratio[10][2][20][200];
+
 double A_corewidth_errors[10][2][20][200];
 double A_tailwidth_errors[10][2][20][200];
 
@@ -135,13 +143,23 @@ double A_tailsq_par0[10][2][20];
 double A_tailsq_par1[10][2][20];
 
 double hist_std[10][2][20][200];
+
+TProfile *hist_res_vs[10][2][20][200][10];
+
 //string iblnames[2];
 //string trackParam_list[10];
 string iblnames[] = {"noIBL","IBL"};
 string trackParam_list[] = {"d0","z0","eta","phi","Ipt"};
 double trackParam_range[5];
+std::vector<double>  TP_ranges_max;
+std::vector<double>  TP_ranges_min;
+std::vector<double>  TP_ranges_res;
 string trackParam_units[] = {"[mm]","[mm]"," "," ","[MeV]^{-1}"};
 //TGraphErrors *g[20];
+
+TH1F *pthighpull;
+TH1F *ptlowpull;
+
 
 TH1F *histod0_ftk_poseta;
 TH1F *histod0_ftk_negeta;
@@ -280,9 +298,9 @@ TH1F *histopt_truthM_muonlo_lg;
 TH1F *histopt_truthM_muon_lg;
 
 // Things to access variables!
-FTKTrackStream *tracks(0);
+FTKTrackStream *ftktracks(0);
 FTKRoadStream *roads(0);
-std::vector<FTKTruthTrack> *truthTracks(0);
+std::vector<FTKTruthTrack> *truthtracks(0);
 //std::vector<double> z0array;
 //std::vector<double> d0array;
 //std::vector<double> etaarray;
@@ -294,6 +312,8 @@ std::vector<double> ptbinsvec;
 std::vector<double> invptbinsvec;
 std::vector<double> widthvec;
 std::vector<double> widtherr;
+
+std::vector<double> ratios;
 
 std::vector<double> corewidths;
 std::vector<double> tailwidths;
