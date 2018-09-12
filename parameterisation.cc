@@ -110,7 +110,7 @@ void Init() {
   trackParam_range[3] = Dphi;
   trackParam_range[4] = Drelpt;
   
-  ninvptbins = 26; //26 //must be even.
+  ninvptbins = 100; //26 //must be even.
 
   middlebin1 = std::floor((ninvptbins-1)/2.0);
   middlebin2= std::ceil((ninvptbins-1)/2.0);
@@ -128,8 +128,8 @@ void Init() {
  
   //double etabinsarray[] = {0.0,0.5,1.0,1.5};
   //,2.0,2.5};
- double etabinsarray[] = {0.0,0.5,1.0,1.5,2.0,2.5};
- //double etabinsarray[] = {0.0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.25,2.5};
+ //double etabinsarray[] = {0.0,0.5,1.0,1.5,2.0,2.5};
+ double etabinsarray[] = {0.0,0.25,0.5,0.75,1.0,1.25,1.5,1.75,2.0,2.25,2.5};
  
   for (auto &bin :etabinsarray){etabins.push_back(bin);}
   iblnames[0] = "noIBL";
@@ -273,24 +273,24 @@ void Process(Long64_t ientry) {
     const FTKTruthTrack &curtruth = (*itr);
     
 
-    if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
+    //if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
     int    barcode   = curtruth.getBarcode();
-    if (barcode>100000 || barcode==0) continue;
+    //if (barcode>100000 || barcode==0) continue;
     double px = curtruth.getPX(); 
     double py = curtruth.getPY(); 
     double pt = TMath::Sqrt(px*px+py*py);
-    if ( pt < ptmincut ) continue;
+    //if ( pt < ptmincut ) continue;
     double invpt     = 1./(2.0*pt);
     double d0        = curtruth.getD0();
-    if (d0<d0min || d0>d0max) continue;
+    //if (d0<d0min || d0>d0max) continue;
     double z0        = curtruth.getZ();
-    if (z0<z0min || z0>z0max) continue;
+    //if (z0<z0min || z0>z0max) continue;
     double curv      = curtruth.getQ()*invpt;
-    if (curv < -abscurvmax || curv>abscurvmax) continue;
+    //if (curv < -abscurvmax || curv>abscurvmax) continue;
     double phi       = curtruth.getPhi();
-    if (phi<phimin || phi>phimax) continue;
+    //if (phi<phimin || phi>phimax) continue;
     double eta       = curtruth.getEta();
-    if (eta<etamin || eta>etamax) continue;
+    //if (eta<etamin || eta>etamax) continue;
     double qOverp    = curv;
     ntracks_passed = ntracks_passed + 1;
  
@@ -303,73 +303,43 @@ void Process(Long64_t ientry) {
       const FTKTrack *bestftk(0x0);
 
       for(FTKBarcodeMM::const_iterator ftkI = mrange.first;ftkI!=mrange.second;++ftkI) {
-        // for every iterator where the barcode and event index of the first are not equal to the barcode and event index of the second. 
-        if (!bestftk){
-          bestftk = (*ftkI).second; //ftktrack
-        } else if (bestftk->getBarcodeFrac()<(*ftkI).second->getBarcodeFrac()) {
-          bestftk = (*ftkI).second; // if the barcodefraction is less than the new one. Replace.
-        }
-      }
-     
-      if (bestftk) {   
-        //std::cout <<"BARCODES::FTK,TRUTH" << "(" << bestftk->getBarcode() << "," << barcode << ")" << std::endl;  
-        //std::cout <<"BARCODES::FRAC::" << bestftk->getBarcodeFrac() << std::endl;  
-        //if (bestftk->getEventIndex()!=0) continue;
-        //int    barcodeftk   = bestftk->getBarcode();
-        //if (barcodeftk>100000 || barcodeftk==0) continue;
-        double ptftk = bestftk->getPt();
-        //if ( ptftk < ptmincut )continue;
-        double invpt_ftk     = 1./(2.0*ptftk);
-        //double d0ftk        = bestftk->getIP();
-        //if (d0ftk<d0min || d0ftk>d0max) continue;
-        //double z0ftk        = bestftk->getZ0();
-        //if (z0ftk<z0min || z0ftk>z0max) continue;
-        //double curvftk      = invpt_ftk;
-        //if (curvftk < -abscurvmax || curvftk>abscurvmax) continue;
-        //double phiftk       = bestftk->getPhi();
-        //if (phiftk<phimin || phiftk>phimax) continue;
-        //double etaftk       = bestftk->getEta();
-        //if (etaftk<etamin || etaftk>etamax) continue;
-        
-        nthftktrack = nthftktrack + 1;
-	      FTKHit hit  = bestftk->getFTKHit(0);
-	      bool isIBL  = hit.getPlane() == 0;
-        //isIBL =0;
-        double TP_truth[] = {d0,z0,eta,phi,qOverp};
-        double TP_ftk[]   = {bestftk->getIP(),bestftk->getZ0(),bestftk->getEta(),bestftk->getPhi(),invpt_ftk};
-	      for(unsigned int ieta = 1; ieta < etabins.size(); ieta++){
-	         etabin_min = etabins.at(ieta-1);
-	         etabin_max = etabins.at(ieta);
-           //std::cout << "(etamin,etamax)::" << "(" << etabin_min << ", " << etabin_max << ")" << std::endl;
-           if ( TMath::Abs(eta) < etabin_min || TMath::Abs(eta) > etabin_max) continue;
+          if (barcode == (*ftkI).second->getBarcode()) continue;
+          //if ((*ftkI).second->getEventIndex()!=0) continue;
+          //if (TMath::Abs((*ftkI).second->getPt()) < ptmincut) continue
+          if ((*ftkI).second->getIP() < d0min ||(*ftkI).second->getIP() > d0max ) continue;
+          if ((*ftkI).second->getZ0() < z0min ||(*ftkI).second->getZ0() > z0max ) continue;
+          if ((*ftkI).second->getPhi()< phimin||(*ftkI).second->getPhi()> phimax) continue;
+          if ((*ftkI).second->getEta()< etamin||(*ftkI).second->getEta()> etamax) continue;
+          if ((*ftkI).second->getPhi()< phimin||(*ftkI).second->getPhi()> phimax) continue;
+           double invpt_ftk = 1./(2.0*(*ftkI).second->getPt());
+          if (invpt_ftk < -abscurvmax || invpt_ftk > abscurvmax) continue;
+           bestftk = (*ftkI).second; // if the barcodefraction is less than the new one. Replace.
+          if (bestftk) {   
+            double invpt_ftk     = 1./(2.0*bestftk->getPt());
+            
+            nthftktrack = nthftktrack + 1;
+            FTKHit hit  = bestftk->getFTKHit(0);
+            bool isIBL  = hit.getPlane() == 0;
+            double TP_truth[] = {d0,z0,eta,phi,qOverp};
+            double TP_ftk[]   = {bestftk->getIP(),bestftk->getZ0(),bestftk->getEta(),bestftk->getPhi(),invpt_ftk};
+            for(unsigned int ieta = 1; ieta < etabins.size(); ieta++){
+              etabin_min = etabins.at(ieta-1);
+              etabin_max = etabins.at(ieta);
+              if ( TMath::Abs(bestftk->getEta()) < etabin_min || TMath::Abs(bestftk->getEta()) > etabin_max) continue;
+              for(unsigned int iipt = 1; iipt < invptbinsvec.size();iipt++){
+                invptbin_min = invptbinsvec.at(iipt-1);
+                invptbin_max = invptbinsvec.at(iipt);
+                if ( invpt_ftk < invptbin_min || invpt_ftk > invptbin_max        ) continue;
+                for(int itp = 0; itp < 5; itp++){
+                    hist_res[itp][isIBL][ieta-1][iipt-1]->Fill(TP_ftk[itp] - TP_truth[itp]);
+                }
+              } // invpt bins
+            } // eta bins
+          } // end best ftk 
+      }// end FTK barcode 
 
-	         for(unsigned int iipt = 1; iipt < invptbinsvec.size();iipt++){
-	           invptbin_min = invptbinsvec.at(iipt-1);
-	           invptbin_max = invptbinsvec.at(iipt);
-  		       if ( qOverp < invptbin_min || qOverp > invptbin_max        ) continue;
-
-             for(int itp = 0; itp < 5; itp++){
-                hist_res[itp][isIBL][ieta-1][iipt-1]->Fill(TP_ftk[itp] - TP_truth[itp]);
-             }
-        	 } // invpt bins
-	       } // eta bins
-      } //best ftk loop
-    }// matching
-
+    } //loop through truth tracks, get a ftk match.
   } // end loop over truth tracks
-  if(0){
-    std::cout << "=========================================================" <<  std::endl;
-    std::cout << "=====================END OF TRUTH LOOP ==================" <<  std::endl;
-      std::cout << "pre quality control" << std::endl;
-      std::cout << "ftk track: " << ntracks << " Truth Tracks: " << ntruth << std::endl;
-      std::cout << "post quality control: " << std::endl;
-      std::cout << "ftk tracks: " << nthftktrack << " ntracks_passed::" << ntracks_passed << std::endl;
-      if(nthftktrack > ntracks_passed){
-        std::cout << "WARNING::MORE FTK TRACKS" << std::endl;
-      }
-      std::cout << "=========================================================" <<  std::endl;
-  }
-
 }
 ////////////////////////////////// </PROCESS>
 
@@ -382,11 +352,11 @@ void width_calculation(){
     for(int iibl =0;iibl < nibl;iibl++){
       string iblname  = iblnames[iibl];
 
-      for(unsigned int ieta =0;ieta < etabins.size()-1;ieta++){
+      for(unsigned int ieta =0;ieta < etabins.size();ieta++){
         //widths.clear();
         //width_errors.clear();
 
-        for(unsigned int iipt=0;iipt < invptbinsvec.size()-1;iipt++){
+        for(unsigned int iipt=0;iipt < invptbinsvec.size();iipt++){
 	         Double_t par[6]; /* parameter array */
 
           double  histrange = 4.5*hist_std[itp][iibl][ieta][iipt];
@@ -414,7 +384,7 @@ void width_calculation(){
           dg->SetParLimits(0,0,7000);
           dg->FixParameter(1,0.0);
           dg->FixParameter(3,0.0);
-          dg->SetParLimits(4,par[2],10*par[2]);
+          dg->SetParLimits(4,par[2],20*par[2]);
           hist_res[itp][iibl][ieta][iipt]->Fit(dg,"QR0");
           TF1 *coretest = new TF1 ("coretest","gaus",-histrange,histrange);
           TF1 *tailtest = new TF1 ("tailtest","gaus",-histrange,histrange);
@@ -747,25 +717,25 @@ void Pull (Long64_t ientry) {
   for (;itr!=itrE;++itr) { 
     const FTKTruthTrack &curtruth = (*itr);
 
-    if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
+    //if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
     int barcode   = curtruth.getBarcode();
-    if (barcode>100000   || barcode==0)      continue;
+    //if (barcode>100000   || barcode==0)      continue;
     double px     = curtruth.getPX();
     double py     = curtruth.getPY();
     double pt     = TMath::Sqrt(px*px+py*py);
-    if ( pt  < ptmincut )       continue;
+    //if ( pt  < ptmincut )       continue;
     double invpt  = 1./(2.0*pt);
     double d0     = curtruth.getD0();
-    if (d0<d0min || d0>d0max)        continue;
+    //if (d0<d0min || d0>d0max)        continue;
     double z0     = curtruth.getZ();
-    if (z0<z0min || z0>z0max)        continue;
+    //if (z0<z0min || z0>z0max)        continue;
     double curv   = curtruth.getQ()*invpt;
-    if (curv<-abscurvmax || curv>abscurvmax) continue;
+    //if (curv<-abscurvmax || curv>abscurvmax) continue;
     double phi    = curtruth.getPhi();
     
-    if (phi<phimin       || phi>phimax)      continue;
+    //if (phi<phimin       || phi>phimax)      continue;
     double eta    = curtruth.getEta();
-    if (eta<etamin       || eta>etamax)      continue;
+    //if (eta<etamin       || eta>etamax)      continue;
     double qOverp = curv;
 
     ntracks_passed =  ntracks_passed + 1;
@@ -778,49 +748,63 @@ void Pull (Long64_t ientry) {
     if (mrange.first != mrange.second) {
       const FTKTrack *bestftk(0x0);
       for(FTKBarcodeMM::const_iterator ftkI = mrange.first;ftkI!=mrange.second;++ftkI) {
-        if (!bestftk) {
-          bestftk = (*ftkI).second;
-        } else if (bestftk->getBarcodeFrac()<(*ftkI).second->getBarcodeFrac()) {
-          bestftk = (*ftkI).second;
+         if (barcode == (*ftkI).second->getBarcode()) {
+           if ((*ftkI).second->getEventIndex()!=0) continue;
+           if (TMath::Abs((*ftkI).second->getPt()) < ptmincut) continue;
+           double invpt_ftk = 1./(2.0*(*ftkI).second->getPt());
+           if ((*ftkI).second->getIP() < d0min ||(*ftkI).second->getIP() > d0max ) continue;
+           if ((*ftkI).second->getZ0() < z0min ||(*ftkI).second->getZ0() > z0max ) continue;
+           if ((*ftkI).second->getPhi()< phimin||(*ftkI).second->getPhi()> phimax) continue;
+           if ((*ftkI).second->getEta()< etamin||(*ftkI).second->getEta()> etamax) continue;
+           if ((*ftkI).second->getPhi()< phimin||(*ftkI).second->getPhi()> phimax) continue;
+           if (invpt_ftk < -abscurvmax || invpt_ftk > abscurvmax) continue;
+           bestftk = (*ftkI).second; // if the barcodefraction is less than the new one. Replace.
         }
-      }
+      
+      
+//        if (!bestftk) {
+//          bestftk = (*ftkI).second;
+//        } else if (bestftk->getBarcodeFrac()<(*ftkI).second->getBarcodeFrac()) {
+//          bestftk = (*ftkI).second;
+//        }
+     // }
 
 
 
         if (bestftk) {
           
 
-             double ptftk = bestftk->getPt();
-             double invpt_ftk     = 1./(2.0*ptftk);
+             //double ptftk = bestftk->getPt();
+             double invpt_ftk     = 1./(2.0*bestftk->getPt());
 
           FTKHit hit = bestftk->getFTKHit(0);
 	        bool isIBL = hit.getPlane() == 0;
           //isIBL =0;
           double TP_truth[] = {d0,z0,eta,phi,qOverp};
           double TP_ftk[]   = {bestftk->getIP(),bestftk->getZ0(),bestftk->getEta(),bestftk->getPhi(),invpt_ftk}; 
-          TF1 *coregaussian = new TF1 ("coregaussian","gaus",-15,15.);
+          TF1 *coregaussian = new TF1 ("coregaussian","gaus",-15.,15.);
           TF1 *tailgaussian = new TF1 ("tailgaussian","gaus",-15.,15.);     
-
-               double widthcalc;  
-               double tailwidthcalc;
-               double corewidthcalc;    
-               double corrected_width;  
+          double widthcalc;  
+          double tailwidthcalc;
+          double corewidthcalc;    
+          double corrected_width;  
          for(unsigned int ieta = 1; ieta < etabins.size(); ieta++){
              etabin_min = etabins.at(ieta-1);
              etabin_max = etabins.at(ieta);
             // std::cout << "(min,max)::" << etabin_min << "," << etabin_max << std::endl;
-             if ( TMath::Abs(eta) < etabin_min || TMath::Abs(eta) > etabin_max ) continue;
-
-
+             if ( TMath::Abs(bestftk->getEta()) < etabin_min || TMath::Abs(bestftk->getEta()) > etabin_max ) continue;
 
                 //FIX FIX FIX FIX
                for(int itp = 0; itp < 5; itp++){
-              
-                  widthcalc     = TMath::Sqrt(A_sq_par0[itp][isIBL][ieta-1]     + A_sq_par1[itp][isIBL][ieta-1]*qOverp*qOverp ); 
-                  corewidthcalc = TMath::Sqrt(A_coresq_par0[itp][isIBL][ieta-1] + A_coresq_par1[itp][isIBL][ieta-1]*qOverp*qOverp );
-                  tailwidthcalc = TMath::Sqrt(A_tailsq_par0[itp][isIBL][ieta-1] + A_tailsq_par1[itp][isIBL][ieta-1]*qOverp*qOverp );
+                 //std::cout << "corewidthcalc: " << invpt_ftk << std::endl;
+              //   std::cout << "ieta: " << ieta << std::endl;
+              //   std::cout << "itp : " << itp  << std::endl;
+              //   std::cout << "isIBL:" << isIBL << std::endl;
+                  widthcalc     = TMath::Sqrt(A_sq_par0[itp][isIBL][ieta-1]     + A_sq_par1[itp][isIBL][ieta-1]*invpt_ftk*invpt_ftk ); 
+                  corewidthcalc = TMath::Sqrt(A_coresq_par0[itp][isIBL][ieta-1] + A_coresq_par1[itp][isIBL][ieta-1]*invpt_ftk*invpt_ftk );
+                  tailwidthcalc = TMath::Sqrt(A_tailsq_par0[itp][isIBL][ieta-1] + A_tailsq_par1[itp][isIBL][ieta-1]*invpt_ftk*invpt_ftk);
 
-                  coregaussian->SetParameters(1.0,0.0,corewidthcalc );
+                  coregaussian->SetParameters(1.0,0.0,corewidthcalc);
                   tailgaussian->SetParameters(1.0,0.0,tailwidthcalc);
 
                   double yield1 = coregaussian->Integral(-15.,15.);
@@ -857,10 +841,11 @@ void Pull (Long64_t ientry) {
 
       } //best ftk loop
     }// matching
+
    // continue;
 
   } // end loop over truth tracks
-
+  }
 } // processing 
 ///////////////////////////////// </PULL>
 
@@ -985,7 +970,7 @@ void Terminate(std::string& outputname,std::string& outputfolder) {
         dg->SetParLimits(0,0,7000);
         dg->FixParameter(1,0.0);
         dg->FixParameter(3,0.0);
-        dg->SetParLimits(4,par[2],10*par[2]);
+        dg->SetParLimits(4,par[2],20*par[2]);
         hist_res[itp][iibl][ieta][iipt]->Fit(dg,"QR0");
         TF1 *coretest = new TF1 ("coretest","gaus",-histrange,histrange);
         TF1 *tailtest = new TF1 ("tailtest","gaus",-histrange,histrange);
