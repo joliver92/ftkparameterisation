@@ -146,6 +146,7 @@ void Init() {
     pull_res[itp] = new TH1F( TtrackParam,TtrackParam_title,nbinspull,-5,5);
     TString TtrackParamSG(trackParam + "SG");
     pull_res_sg[itp] = new TH1F( TtrackParamSG,TtrackParam_title,nbinspull,-5,5);
+
     for (int ipulltype =0;ipulltype < 3;ipulltype++){
       for (int itp2 = 0; itp2 < nParams;itp2++){
         string trackParam2 = trackParam_list[itp2];
@@ -167,6 +168,7 @@ void Init() {
 
     for (int iibl = 0; iibl < nibl;iibl++){
       string iblname = iblnames[iibl];
+      pull_res_ibl[itp][iibl] = new TH1F( TtrackParam + TString(iblname),TtrackParam_title,nbinspull,-5,5);
       for( unsigned int ieta = 0; ieta < etabins.size();ieta++){
 	       for( unsigned int iipt = 0; iipt < invptbinsvec.size();iipt++){
 	          TString hist_res_name("hist_res" + trackParam + "_" + iblname + "_eta" + to_string(ieta) + "_ipt" + to_string(iipt));
@@ -275,22 +277,22 @@ void Process(Long64_t ientry) {
 
     if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
     int    barcode   = curtruth.getBarcode();
-    if (barcode>100000 || barcode==0) continue;
+    //if (barcode>100000 || barcode==0) continue;
     double px = curtruth.getPX(); 
     double py = curtruth.getPY(); 
     double pt = TMath::Sqrt(px*px+py*py);
-    if ( pt < ptmincut ) continue;
+    //if ( pt < ptmincut ) continue;
     double invpt     = 1./(2.0*pt);
     double d0        = curtruth.getD0();
-    if (d0<d0min || d0>d0max) continue;
+    //if (d0<d0min || d0>d0max) continue;
     double z0        = curtruth.getZ();
-    if (z0<z0min || z0>z0max) continue;
+    //if (z0<z0min || z0>z0max) continue;
     double curv      = curtruth.getQ()*invpt;
-    if (curv < -abscurvmax || curv>abscurvmax) continue;
+    //if (curv < -abscurvmax || curv>abscurvmax) continue;
     double phi       = curtruth.getPhi();
-    if (phi<phimin || phi>phimax) continue;
+    //if (phi<phimin || phi>phimax) continue;
     double eta       = curtruth.getEta();
-    if (eta<etamin || eta>etamax) continue;
+    //if (eta<etamin || eta>etamax) continue;
     double qOverp    = curv;
     ntracks_passed = ntracks_passed + 1;
  
@@ -304,14 +306,25 @@ void Process(Long64_t ientry) {
 
       for(FTKBarcodeMM::const_iterator ftkI = mrange.first;ftkI!=mrange.second;++ftkI) {
         // for every iterator where the barcode and event index of the first are not equal to the barcode and event index of the second. 
-        if (!bestftk){
-          bestftk = (*ftkI).second; //ftktrack
-        } else if (bestftk->getBarcodeFrac()<(*ftkI).second->getBarcodeFrac()) {
+      //if (!bestftk){
+      //    bestftk = (*ftkI).second; //ftktrack
+     // } 
+          if (barcode != (*ftkI).second->getBarcode() ) continue;
+          if (TMath::Abs((*ftkI).second->getPt()) < ptmincut ) continue;
+          if ((*ftkI).second->getEta() < etamin   || (*ftkI).second->getEta() > etamax   ) continue;
+
+          if ((*ftkI).second->getPhi() < phimin   || (*ftkI).second->getPhi() > phimax   ) continue;
+
+          if ((*ftkI).second->getIP() < d0min   || (*ftkI).second->getIP() > d0max   ) continue;
+
+          if ((*ftkI).second->getZ0() < z0min || (*ftkI).second->getZ0() > z0max   ) continue;
+         // std::cout << "TEST::1" << std::endl;
           bestftk = (*ftkI).second; // if the barcodefraction is less than the new one. Replace.
-        }
+        
       }
      
       if (bestftk) {   
+        //std::cout << "TEST::2" << std::endl;
         //std::cout <<"BARCODES::FTK,TRUTH" << "(" << bestftk->getBarcode() << "," << barcode << ")" << std::endl;  
         //std::cout <<"BARCODES::FRAC::" << bestftk->getBarcodeFrac() << std::endl;  
         //if (bestftk->getEventIndex()!=0) continue;
@@ -341,12 +354,12 @@ void Process(Long64_t ientry) {
 	         etabin_min = etabins.at(ieta-1);
 	         etabin_max = etabins.at(ieta);
            //std::cout << "(etamin,etamax)::" << "(" << etabin_min << ", " << etabin_max << ")" << std::endl;
-           if ( TMath::Abs(eta) < etabin_min || TMath::Abs(eta) > etabin_max) continue;
+           if ( TMath::Abs(bestftk->getEta()) < etabin_min || TMath::Abs(bestftk->getEta()) > etabin_max) continue;
 
 	         for(unsigned int iipt = 1; iipt < invptbinsvec.size();iipt++){
 	           invptbin_min = invptbinsvec.at(iipt-1);
 	           invptbin_max = invptbinsvec.at(iipt);
-  		       if ( qOverp < invptbin_min || qOverp > invptbin_max        ) continue;
+  		       if ( invpt_ftk < invptbin_min || invpt_ftk > invptbin_max        ) continue;
 
              for(int itp = 0; itp < 5; itp++){
                 hist_res[itp][isIBL][ieta-1][iipt-1]->Fill(TP_ftk[itp] - TP_truth[itp]);
@@ -567,7 +580,7 @@ void sqrt_fit(){
           double b = (linfuncmax*linfuncmax - a*a)/rangemax/rangemax;
           
           func->SetParameters(a,b);
-          func->SetParLimits(0,0.95*linpar0*linpar0, 1.05*linpar0*linpar0);
+          func->SetParLimits(0,0.97*linpar0*linpar0, 1.02*linpar0*linpar0);
           
           //func->SetParNames ("a","b");
           graph_sqrt->Fit(func,"QR");
@@ -620,7 +633,7 @@ void coresqrt_fit(){
           double b = (linfuncmax*linfuncmax - a*a)/rangemax/rangemax;
 
           func->SetParameters(a,b);
-          func->SetParLimits(0,0.95*linpar0*linpar0, 1.05*linpar0*linpar0);
+          func->SetParLimits(0,0.97*linpar0*linpar0, 1.02*linpar0*linpar0);
           //func->SetParNames ("a","b");
           graph_sqrt->Fit(func,"QR");
 
@@ -671,7 +684,7 @@ void tailsqrt_fit(){
           double b = (linfuncmax*linfuncmax - a*a)/rangemax/rangemax;
 
           func->SetParameters(a,b);
-          func->SetParLimits(0,0.95*linpar0*linpar0, 1.05*linpar0*linpar0);
+          func->SetParLimits(0,0.97*linpar0*linpar0, 1.02*linpar0*linpar0);
           //func->SetParNames ("a","b");
           graph_sqrt->Fit(func,"QR");
 
@@ -746,29 +759,14 @@ void Pull (Long64_t ientry) {
   vector<FTKTruthTrack>::const_iterator itrE = truthtracks->end();
   for (;itr!=itrE;++itr) { 
     const FTKTruthTrack &curtruth = (*itr);
-
-    if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
-    int barcode   = curtruth.getBarcode();
-    if (barcode>100000   || barcode==0)      continue;
-    double px     = curtruth.getPX();
-    double py     = curtruth.getPY();
-    double pt     = TMath::Sqrt(px*px+py*py);
-    if ( pt  < ptmincut )       continue;
-    double invpt  = 1./(2.0*pt);
-    double d0     = curtruth.getD0();
-    if (d0<d0min || d0>d0max)        continue;
-    double z0     = curtruth.getZ();
-    if (z0<z0min || z0>z0max)        continue;
-    double curv   = curtruth.getQ()*invpt;
-    if (curv<-abscurvmax || curv>abscurvmax) continue;
-    double phi    = curtruth.getPhi();
     
-    if (phi<phimin       || phi>phimax)      continue;
-    double eta    = curtruth.getEta();
-    if (eta<etamin       || eta>etamax)      continue;
-    double qOverp = curv;
+    //if (curtruth.getEventIndex()!=0 && curtruth.getQ()==0) continue;
+    int barcode   = curtruth.getBarcode();
+    //if (barcode>100000   || barcode==0)      continue;
 
-    ntracks_passed =  ntracks_passed + 1;
+    //if (eta<etamin       || eta>etamax)      continue;
+
+    //    ntracks_passed =  ntracks_passed + 1;
 
     // match the barcode and event index values
     MatchInfo reftruth(barcode,curtruth.getEventIndex());
@@ -778,20 +776,44 @@ void Pull (Long64_t ientry) {
     if (mrange.first != mrange.second) {
       const FTKTrack *bestftk(0x0);
       for(FTKBarcodeMM::const_iterator ftkI = mrange.first;ftkI!=mrange.second;++ftkI) {
-        if (!bestftk) {
-          bestftk = (*ftkI).second;
-        } else if (bestftk->getBarcodeFrac()<(*ftkI).second->getBarcodeFrac()) {
-          bestftk = (*ftkI).second;
-        }
+          if (barcode != (*ftkI).second->getBarcode() ) continue;
+          if (TMath::Abs((*ftkI).second->getPt()) < ptmincut ) continue;
+          if ((*ftkI).second->getEta() < etamin   || (*ftkI).second->getEta() > etamax   ) continue;
+
+          if ((*ftkI).second->getPhi() < phimin   || (*ftkI).second->getPhi() > phimax   ) continue;
+
+          if ((*ftkI).second->getIP() < d0min   || (*ftkI).second->getIP() > d0max   ) continue;
+
+          if ((*ftkI).second->getZ0() < z0min || (*ftkI).second->getZ0() > z0max   ) continue;
+
+          bestftk = (*ftkI).second; // if the barcodefraction is less than the new one. Replace.
+        
       }
 
 
 
         if (bestftk) {
+           ntracks_passed =  ntracks_passed + 1;
+              double px     = curtruth.getPX();
+              double py     = curtruth.getPY();
+              double pt     = TMath::Sqrt(px*px+py*py);
+              //if ( pt  < ptmincut )       continue;
+              double invpt  = 1./(2.0*pt);
+              double d0     = curtruth.getD0();
+              //if (d0<d0min || d0>d0max)        continue;
+              double z0     = curtruth.getZ();
+              //if (z0<z0min || z0>z0max)        continue;
+              double curv   = curtruth.getQ()*invpt;
+              //if (curv<-abscurvmax || curv>abscurvmax) continue;
+              double phi    = curtruth.getPhi();
+              double qOverp = curv;
+
+    //if (phi<phimin       || phi>phimax)      continue;
+          double eta    = curtruth.getEta();
           
 
-             double ptftk = bestftk->getPt();
-             double invpt_ftk     = 1./(2.0*ptftk);
+          double ptftk = bestftk->getPt();
+          double invpt_ftk     = 1./(2.0*ptftk);
 
           FTKHit hit = bestftk->getFTKHit(0);
 	        bool isIBL = hit.getPlane() == 0;
@@ -801,24 +823,21 @@ void Pull (Long64_t ientry) {
           TF1 *coregaussian = new TF1 ("coregaussian","gaus",-15,15.);
           TF1 *tailgaussian = new TF1 ("tailgaussian","gaus",-15.,15.);     
 
-               double widthcalc;  
-               double tailwidthcalc;
-               double corewidthcalc;    
-               double corrected_width;  
+          double widthcalc;  
+          double tailwidthcalc;
+          double corewidthcalc;    
+          double corrected_width; 
+
          for(unsigned int ieta = 1; ieta < etabins.size(); ieta++){
              etabin_min = etabins.at(ieta-1);
              etabin_max = etabins.at(ieta);
-            // std::cout << "(min,max)::" << etabin_min << "," << etabin_max << std::endl;
-             if ( TMath::Abs(eta) < etabin_min || TMath::Abs(eta) > etabin_max ) continue;
-
-
-
-                //FIX FIX FIX FIX
-               for(int itp = 0; itp < 5; itp++){
+          
+             if ( TMath::Abs(bestftk->getEta()) < etabin_min || TMath::Abs(bestftk->getEta()) > etabin_max ) continue;
+             for(int itp = 0; itp < 5; itp++){
               
-                  widthcalc     = TMath::Sqrt(A_sq_par0[itp][isIBL][ieta-1]     + A_sq_par1[itp][isIBL][ieta-1]*qOverp*qOverp ); 
-                  corewidthcalc = TMath::Sqrt(A_coresq_par0[itp][isIBL][ieta-1] + A_coresq_par1[itp][isIBL][ieta-1]*qOverp*qOverp );
-                  tailwidthcalc = TMath::Sqrt(A_tailsq_par0[itp][isIBL][ieta-1] + A_tailsq_par1[itp][isIBL][ieta-1]*qOverp*qOverp );
+                  widthcalc     = TMath::Sqrt(A_sq_par0[itp][isIBL][ieta-1]     + A_sq_par1[itp][isIBL][ieta-1]*invpt_ftk*invpt_ftk ); 
+                  corewidthcalc = TMath::Sqrt(A_coresq_par0[itp][isIBL][ieta-1] + A_coresq_par1[itp][isIBL][ieta-1]*invpt_ftk*invpt_ftk );
+                  tailwidthcalc = TMath::Sqrt(A_tailsq_par0[itp][isIBL][ieta-1] + A_tailsq_par1[itp][isIBL][ieta-1]*invpt_ftk*invpt_ftk );
 
                   coregaussian->SetParameters(1.0,0.0,corewidthcalc );
                   tailgaussian->SetParameters(1.0,0.0,tailwidthcalc);
@@ -833,6 +852,8 @@ void Pull (Long64_t ientry) {
 
                   double pullTP    = (TP_ftk[itp] - TP_truth[itp])/corrected_width;
                   double pullTP_sg = (TP_ftk[itp] - TP_truth[itp])/widthcalc;
+                  
+
 
                   for( int itp2 = 0;itp2 < 5; itp2++){
                      TP_pull[itp][itp2][0]->Fill(TP_truth[itp2]);
@@ -847,20 +868,23 @@ void Pull (Long64_t ientry) {
 
                   pull_res[itp]->Fill(pullTP);
                   pull_res_sg[itp]->Fill(pullTP_sg);
+
+                  pull_res_ibl[itp][isIBL]->Fill(pullTP);
                   
               }
-              delete coregaussian;
-              delete tailgaussian;
+
              // } // invpt bins
             } // eta bins 
 	 //	  }// ibl bin
+              delete coregaussian;
+              delete tailgaussian;
 
       } //best ftk loop
     }// matching
    // continue;
 
   } // end loop over truth tracks
-
+  std::cout << "ntracks passed:" << ntracks_passed << std::endl;
 } // processing 
 ///////////////////////////////// </PULL>
 
@@ -1472,11 +1496,101 @@ void Terminate(std::string& outputname,std::string& outputfolder) {
      c->Update();
      img->WriteImage(hist_res_name);
 
-     ofile->Add(pull_res[itp]);
-     ofile->Add(pull_res_sg[itp]);
+     //ofile->Add(pull_res[itp]);
+     //ofile->Add(pull_res_sg[itp]);
      delete c;
 
    }
+
+
+   for( int itp = 0; itp < nParams; itp++){
+    // pull_res_ibl[itp][0]->Fit("gaus","Q","",-5.,5.);
+
+     TCanvas *c = new TCanvas;
+
+     TPad *padpull1 = new TPad("padpull1", "padpull1", 0, 0.3, 1, 1.0);
+     padpull1->SetBottomMargin(0.05); // Upper and lower plot are joined
+     padpull1->SetGridx();         // Vertical grid
+     padpull1->Draw();             // Draw the upper pad: pad1
+     padpull1->cd();               // pad1 becomes the current pad
+
+
+     padpull1->SetLogy();
+     pull_res_ibl[itp][0]->SetLineColor(kRed+1);
+     pull_res_ibl[itp][1]->SetLineColor(kBlue+1);
+     pull_res_ibl[itp][0]->SetLineStyle(2);
+     pull_res_ibl[itp][1]->SetLineStyle(1);
+
+     pull_res_ibl[itp][0]->Scale(1.0/pull_res_ibl[itp][0]->Integral());
+     pull_res_ibl[itp][1]->Scale(1.0/pull_res_ibl[itp][1]->Integral());
+     pull_res_ibl[itp][0]->Fit("gaus","Q","",-5.,5.);
+     pull_res_ibl[itp][0]->Draw();
+     pull_res_ibl[itp][1]->Draw("SAME");
+
+
+      c->cd();
+      TPad *padpull2 = new TPad("padpull2", "padpull2", 0, 0.05, 1, 0.3);
+      padpull2->SetTopMargin(0);
+      padpull2->SetBottomMargin(0.2);
+      padpull2->SetGridx(); // vertical grid
+      padpull2->SetGridy();
+      padpull2->Draw();
+      padpull2->cd();       // pad2 becomes the current pad
+
+       TH1F *hpull3 = (TH1F*)pull_res_ibl[itp][0]->Clone("hpull3");
+       hpull3->GetFunction("gaus")->SetBit(TF1::kNotDraw);
+       hpull3->SetLineColor(kBlack);
+       hpull3->SetMinimum(0);  // Define Y ..
+       hpull3->SetMaximum(2); // .. range
+       hpull3->Sumw2();
+       hpull3->SetStats(0);      // No statistics on lower plot
+       //hpull3->Divide(gaussian);
+       hpull3->Divide(pull_res_ibl[itp][1]);
+       hpull3->SetMarkerStyle(7);
+       hpull3->Draw("ep");       // Draw the ratio plot
+       hpull3->SetMinimum(0);  // Define Y ..
+       hpull3->SetMaximum(2); // .. range
+
+       hpull3->GetYaxis()->SetTitle("noIBL/IBL");
+       hpull3->GetYaxis()->SetNdivisions(505);
+       hpull3->GetYaxis()->SetTitleSize(20);
+       hpull3->GetYaxis()->SetTitleFont(43);
+       hpull3->GetYaxis()->SetTitleOffset(1.0);
+       hpull3->GetYaxis()->SetLabelFont(43); // Absolute font size in pixel (precision 3)
+       hpull3->GetYaxis()->SetLabelSize(15);
+
+       // X axis ratio plot settings
+       hpull3->GetXaxis()->SetTitleSize(20);
+       hpull3->GetXaxis()->SetTitleFont(43);
+       hpull3->GetXaxis()->SetTitleOffset(4.);
+       hpull3->GetXaxis()->SetLabelFont(43); // Absolute font size in pixel (precision 3)
+       hpull3->GetXaxis()->SetLabelSize(15);
+       
+       padpull2->Update();
+
+
+        
+       c->cd();
+
+       c->Update();
+
+     padpull1->Update();
+     TImage *img = TImage::Create();
+     img->FromPad(c);
+     string trackParam = trackParam_list[itp];
+     string hist_res_name_string = "output/pull_res_ibl" + trackParam +".png";
+     TString hist_res_name(hist_res_name_string);
+     gStyle->SetOptFit();
+     c->Update();
+     img->WriteImage(hist_res_name);
+
+     //ofile->Add(pull_res[itp]);
+     //ofile->Add(pull_res_sg[itp]);
+     delete c;
+
+   }
+
+
 
   ofile->ls();
   ofile->Write();

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+command="trigftk_parameterisation --output parameterisationFile.root --files output_100k_100f.root"
+echo "running", $command
+$command
+#trigftk_efficiency --output parameterisationFile_kickoff.root --files output_100k_100f.root 
+#--events 1000
+#--events 10000

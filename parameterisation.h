@@ -70,7 +70,7 @@ double Deta;
 double Dz0;
 double ptmincut;
 double dx, dy;
-Double_t ptbins[20];
+Double_t ptbins[100];
 Double_t etabinsarray[20];
 Double_t d0binsarray[20];
 Double_t z0binsarray[20];
@@ -80,6 +80,7 @@ int reprocessing = 0;
 //TString Tpulltitle[3];
 
 TH1F *pull_res[5];
+TH1F *pull_res_ibl[5][2];
 TH1F *pull_res_sg[5];
 TH1F *TP_pull[5][5][3];
 
